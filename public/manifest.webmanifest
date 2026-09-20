@@ -2,15 +2,15 @@
   "name": "PRESSPLAY MATCHDAY",
   "short_name": "MATCHDAY",
   "description": "Offline match planning and live substitution manager",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#071822",
   "theme_color": "#071822",
   "icons": [
     {
-      "src": "/matchday-icon.svg",
+      "src": "./matchday-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

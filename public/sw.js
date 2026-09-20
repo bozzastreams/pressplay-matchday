@@ -1,5 +1,7 @@
-const CACHE_NAME = 'pressplay-matchday-v1';
-const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/matchday-icon.svg'];
+const CACHE_NAME = 'pressplay-matchday-v2';
+const BASE_URL = new URL('./', self.registration.scope);
+const APP_SHELL = ['', 'index.html', 'manifest.webmanifest', 'matchday-icon.svg']
+  .map((path) => new URL(path, BASE_URL).toString());
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -32,7 +34,7 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => caches.match('/index.html'));
+        .catch(() => caches.match(new URL('index.html', BASE_URL).toString()));
     }),
   );
 });
