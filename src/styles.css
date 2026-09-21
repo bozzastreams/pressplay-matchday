@@ -1,7 +1,7 @@
 :root {
   font-family: Inter, 'Segoe UI', sans-serif;
-  color: #edf8f5;
-  background: #071d22;
+  color: #213e38;
+  background: #f4f2eb;
   line-height: 1.4;
   font-weight: 500;
   font-synthesis: none;
@@ -9,22 +9,22 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --bg: #071d22;
-  --bg-elevated: #0d2b31;
-  --panel: #112f35;
-  --panel-alt: #183d45;
-  --panel-strong: #0a2026;
-  --border: rgba(181, 216, 210, 0.12);
-  --text: #edf6f3;
-  --muted: #b3c9c5;
-  --champagne: #f2e8db;
-  --green: #6bd4b8;
-  --green-soft: rgba(107, 212, 184, 0.12);
-  --pink: #f1cbc4;
-  --pink-soft: rgba(241, 203, 196, 0.12);
-  --red: #f08672;
-  --gold: #f0c98c;
-  --shadow: rgba(0, 0, 0, 0.16);
+  --bg: #f4f2eb;
+  --bg-elevated: #e8eee7;
+  --panel: #fffdf8;
+  --panel-alt: #f5f7f1;
+  --panel-strong: #e6eee7;
+  --border: #cbd9d1;
+  --text: #213e38;
+  --muted: #526d65;
+  --champagne: #245044;
+  --green: #176b52;
+  --green-soft: #dceee3;
+  --pink: #f1d8da;
+  --pink-soft: #fae9e9;
+  --red: #a63d43;
+  --gold: #8b621d;
+  --shadow: rgba(28, 62, 51, 0.08);
 }
 
 * {
@@ -46,8 +46,7 @@ html {
 
 body {
   min-height: 100vh;
-  background:
-    linear-gradient(180deg, #071d22 0%, #0b242b 100%);
+  background: var(--bg);
 }
 
 button {
@@ -55,7 +54,8 @@ button {
 }
 
 button,
-input {
+input,
+select {
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
@@ -71,7 +71,7 @@ input {
   gap: 20px;
   padding: 16px 18px;
   border: 1px solid var(--border);
-  background: rgba(12, 25, 29, 0.9);
+  background: var(--panel);
   border-radius: 14px;
   box-shadow: none;
 }
@@ -83,6 +83,17 @@ input {
   min-width: 170px;
 }
 
+.header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.08rem;
+  text-transform: uppercase;
+}
+
 .eyebrow {
   font-size: 0.72rem;
   text-transform: uppercase;
@@ -92,8 +103,9 @@ input {
 
 .brand-block h1 {
   margin: 0;
-  font-size: 2.1rem;
-  letter-spacing: 0.12rem;
+  font-size: 1.9rem;
+  letter-spacing: 0.08rem;
+  text-transform: uppercase;
 }
 
 .score-cluster {
@@ -111,7 +123,7 @@ input {
   padding: 10px 14px;
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.015);
+  background: var(--panel-alt);
 }
 
 .score-box span {
@@ -129,7 +141,7 @@ input {
 .score-box button {
   border: none;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--green-soft);
   color: var(--text);
   padding: 6px 10px;
   cursor: pointer;
@@ -146,7 +158,7 @@ input {
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 6px 12px;
-  background: rgba(25, 58, 80, 0.8);
+  background: var(--green-soft);
   font-weight: 700;
   letter-spacing: 0.2rem;
 }
@@ -166,7 +178,7 @@ input {
 button {
   border: 1px solid var(--border);
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--panel);
   color: var(--text);
   padding: 10px 12px;
   cursor: pointer;
@@ -174,13 +186,26 @@ button {
 }
 
 button:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(181, 216, 210, 0.2);
+  background: var(--green-soft);
+  border-color: var(--green);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
 }
 
 button.danger {
-  border-color: rgba(255, 106, 106, 0.5);
-  background: rgba(255, 106, 106, 0.1);
+  border-color: #dfb5b5;
+  background: #fff1ef;
+  color: var(--red);
 }
 
 .layout {
@@ -199,7 +224,7 @@ button.danger {
   padding: 16px 18px;
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: rgba(14, 29, 40, 0.9);
+  background: var(--panel);
 }
 
 .game-setup > div:first-child {
@@ -216,7 +241,7 @@ button.danger {
 .squad-editor-row input {
   min-width: 0;
   border: 1px solid var(--border);
-  background: rgba(7, 18, 27, 0.8);
+  background: #fff;
   color: var(--text);
   border-radius: 10px;
   padding: 10px 12px;
@@ -230,14 +255,14 @@ button.danger {
 }
 
 .game-actions button:first-child {
-  border-color: rgba(43, 209, 130, 0.6);
+  border-color: var(--green);
   background: var(--green-soft);
   color: var(--green);
 }
 
 .print-button {
-  border-color: rgba(43, 209, 130, 0.55);
-  background: rgba(43, 209, 130, 0.12);
+  border-color: var(--green);
+  background: var(--green-soft);
   color: var(--green);
   font-weight: 700;
 }
@@ -245,7 +270,7 @@ button.danger {
 .main-panel,
 .panel-card {
   border: 1px solid var(--border);
-  background: rgba(14, 29, 40, 0.9);
+  background: var(--panel);
   border-radius: 14px;
   box-shadow: none;
 }
@@ -280,12 +305,12 @@ button.danger {
   min-width: 72px;
   padding: 10px 12px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--panel-alt);
 }
 
 .segment.active {
   background: var(--green-soft);
-  border-color: rgba(43, 209, 130, 0.6);
+  border-color: var(--green);
   color: var(--green);
 }
 
@@ -305,7 +330,7 @@ button.danger {
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   border: 1px solid var(--border);
-  background: rgba(9, 25, 34, 0.7);
+  background: var(--panel);
 }
 
 .grid-header-row,
@@ -315,7 +340,7 @@ button.danger {
 }
 
 .grid-header-row {
-  background: rgba(18, 38, 54, 0.95);
+  background: var(--bg-elevated);
   border-bottom: 1px solid var(--border);
 }
 
@@ -341,7 +366,7 @@ button.danger {
 }
 
 .minute-cell.now {
-  background: rgba(245, 215, 108, 0.12);
+  background: #f6eacb;
   color: var(--gold);
   border-left: 2px solid var(--gold);
   border-right: 2px solid var(--gold);
@@ -363,14 +388,14 @@ button.danger {
   border: none;
   border-right: 1px solid var(--border);
   border-radius: 0;
-  background: rgba(9, 29, 37, 0.98);
+  background: var(--panel-alt);
   padding: 10px 12px;
   text-align: left;
   font-weight: 700;
 }
 
 .player-name.active {
-  background: rgba(43, 209, 130, 0.12);
+  background: var(--green-soft);
 }
 
 .number {
@@ -381,7 +406,7 @@ button.danger {
   height: 26px;
   padding: 4px 6px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: #e4ebe5;
   color: var(--champagne);
   font-size: 0.72rem;
   font-weight: 800;
@@ -394,17 +419,17 @@ button.danger {
   border-right: 1px solid var(--border);
   border-radius: 0;
   padding: 0;
-  background: rgba(255, 255, 255, 0.03);
+  background: #f8faf6;
   position: relative;
 }
 
 .cell.on {
-  background: rgba(107, 212, 184, 0.9);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+  background: #80c9aa;
+  box-shadow: inset 0 0 0 1px #60a98c;
 }
 
 .cell.off {
-  background: rgba(245, 183, 196, 0.18);
+  background: #f9e9e8;
 }
 
 .cell[data-now='true']::before {
@@ -415,7 +440,7 @@ button.danger {
   left: 50%;
   width: 2px;
   transform: translateX(-50%);
-  background: rgba(240, 201, 140, 0.9);
+  background: #ac7928;
   box-shadow: none;
 }
 
@@ -431,7 +456,7 @@ button.danger {
   flex-direction: column;
   gap: 6px;
   border: 1px solid var(--border);
-  background: rgba(8, 19, 30, 0.78);
+  background: var(--panel-alt);
   border-radius: 10px;
   padding: 12px 16px;
 }
@@ -476,11 +501,17 @@ button.danger {
   gap: 10px;
 }
 
+.queue-help {
+  margin: -4px 0 12px;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
 .queue-item,
 .history-item {
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: rgba(9, 25, 35, 0.8);
+  background: var(--panel-alt);
   padding: 12px;
 }
 
@@ -544,7 +575,7 @@ button.danger {
   flex-direction: column;
   gap: 5px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--panel-alt);
   border-radius: 10px;
   padding: 10px;
 }
@@ -564,6 +595,17 @@ button.danger {
 
 .player-actions button {
   flex: 1 1 120px;
+}
+
+.player-actions select {
+  flex: 1 1 150px;
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--text);
+  padding: 8px 10px;
+  font: inherit;
 }
 
 .player-form {
@@ -605,7 +647,7 @@ button.danger {
 .player-form input {
   width: 100%;
   border: 1px solid var(--border);
-  background: rgba(7, 18, 27, 0.8);
+  background: #fff;
   color: var(--text);
   border-radius: 10px;
   padding: 10px 12px;
@@ -626,8 +668,8 @@ button.danger {
 .chip {
   border-radius: 999px;
   padding: 8px 12px;
-  background: rgba(43, 209, 130, 0.12);
-  border-color: rgba(43, 209, 130, 0.28);
+  background: var(--green-soft);
+  border-color: #a9d4ba;
   color: var(--text);
 }
 
@@ -649,7 +691,7 @@ button.danger {
 .intel-panel {
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: rgba(8, 19, 30, 0.8);
+  background: var(--panel-alt);
   padding: 12px;
 }
 
@@ -667,7 +709,7 @@ button.danger {
   justify-content: space-between;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(170, 225, 218, 0.12);
+  border-bottom: 1px solid var(--border);
 }
 
 .intel-row:last-child {
@@ -691,17 +733,17 @@ button.danger {
 }
 
 .risk-pill.fresh {
-  background: rgba(95, 224, 187, 0.12);
+  background: var(--green-soft);
   color: var(--green);
 }
 
 .risk-pill.watch {
-  background: rgba(245, 211, 154, 0.12);
+  background: #f6eacb;
   color: var(--gold);
 }
 
 .risk-pill.at-risk {
-  background: rgba(255, 132, 112, 0.12);
+  background: #fae6e4;
   color: var(--red);
 }
 

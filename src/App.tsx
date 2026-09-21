@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
+import { loadScheduleFromCsv } from './data/kampongBloeSchedule';
 import {
   QUARTER_LENGTH_SECONDS,
   advanceQuarter,
   applyManualSubstitution,
   buildDefaultPlayers,
+  buildDefaultPlayersFromSchedule,
   createEmptyRotation,
+  deferPlannedSubstitution,
   formatClock,
   getCurrentPlayersOn,
   getOffFieldPlayers,
@@ -13,8 +16,10 @@ import {
   getPositionGroupCounts,
   getQuarterMinute,
   getQuarterSummary,
+  getSecondsUntilSubstitution,
   getUpcomingSubstitutions,
   initialisePlan,
+  initialisePlanForSchedule,
   quarterOrder,
   toggleRotationCell,
 } from './engine/matchEngine';
@@ -31,10 +36,10 @@ const createDefaultState = (): MatchState => {
   });
 
   return {
-    matchTitle: 'PRESSPLAY MATCHDAY',
-    opponent: 'TONGA CITY',
-    matchDate: '2026-09-20',
-    venue: 'HOME GROUND',
+    matchTitle: 'KAMPONG BLOE',
+    opponent: 'ABN',
+    matchDate: '',
+    venue: '',
     scoreHome: 0,
     scoreAway: 0,
     quarter: 'Q1',
@@ -55,17 +60,49 @@ const makeSnapshot = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
 function App() {
   const [match, setMatch] = useState<MatchState>(() => loadMatchState() ?? createDefaultState());
+  const [scheduleReady, setScheduleReady] = useState(() => loadMatchState() !== null);
+  const [incomingPlayerId, setIncomingPlayerId] = useState('');
   const [draftPlayer, setDraftPlayer] = useState({
     name: '',
-    number: 23,
+    number: 0,
     primaryPosition: 'Midfield',
     secondaryPosition: 'Half',
     positionGroup: 'MIDFIELDERS',
   });
 
   useEffect(() => {
-    saveMatchState(match);
-  }, [match]);
+    if (scheduleReady) saveMatchState(match);
+  }, [match, scheduleReady]);
+
+  useEffect(() => {
+    if (scheduleReady) return;
+    let cancelled = false;
+
+    void loadScheduleFromCsv().then((schedule) => {
+      if (cancelled) return;
+
+      setMatch((previous) => {
+        const players = buildDefaultPlayersFromSchedule(schedule);
+        const planned = initialisePlanForSchedule(players, schedule);
+        const actual = createEmptyRotation(players);
+
+        players.forEach((player) => {
+          actual[player.id] = [...(planned[player.id] ?? [])];
+        });
+
+        return {
+          ...previous,
+          players,
+          plannedRotation: planned,
+          actualRotation: actual,
+          selectedPlayerId: players.some((player) => player.id === previous.selectedPlayerId)
+            ? previous.selectedPlayerId : players[0]?.id ?? null,
+        };
+      });
+      setScheduleReady(true);
+    });
+    return () => { cancelled = true; };
+  }, [scheduleReady]);
 
   useEffect(() => {
     if (!match.isRunning) return;
@@ -111,10 +148,21 @@ function App() {
   const currentOnCount = getOnCountForSlot(match.players, activeRotation, currentMinute.slotIndex);
   const queue = useMemo(() => getUpcomingSubstitutions(match), [match]);
   const selectedPlayer = match.players.find((player) => player.id === match.selectedPlayerId) ?? match.players[0];
+  const orderedPlayers = useMemo(
+    () => [...match.players].sort((left, right) => {
+      const leftOn = activeRotation[left.id]?.[currentMinute.slotIndex] ?? false;
+      const rightOn = activeRotation[right.id]?.[currentMinute.slotIndex] ?? false;
+      return Number(rightOn) - Number(leftOn) || left.number - right.number;
+    }),
+    [match.players, activeRotation, currentMinute.slotIndex],
+  );
+
   const tacticalIntel = useMemo(
     () => getPlayerIntel(match.players, activeRotation, currentMinute.slotIndex).sort((left, right) => {
+      const leftActive = left.isOn ? 1 : 0;
+      const rightActive = right.isOn ? 1 : 0;
       const riskWeight = { 'at-risk': 3, watch: 2, fresh: 1 };
-      return riskWeight[right.risk] - riskWeight[left.risk] || right.totalMinutes - left.totalMinutes;
+      return rightActive - leftActive || riskWeight[right.risk] - riskWeight[left.risk] || right.totalMinutes - left.totalMinutes;
     }).slice(0, 5),
     [match.players, activeRotation, currentMinute.slotIndex],
   );
@@ -167,6 +215,13 @@ function App() {
     }));
   };
 
+  const handleToggleClock = () => {
+    setMatch((previous) => ({
+      ...previous,
+      isRunning: !previous.isRunning,
+    }));
+  };
+
   const handleMatchFieldChange = (field: 'matchTitle' | 'opponent' | 'matchDate' | 'venue', value: string) => {
     setMatch((previous) => ({
       ...previous,
@@ -196,51 +251,45 @@ function App() {
     });
   };
 
-  const handleQueueAction = (action: 'confirm' | 'delay' | 'change' | 'cancel', itemId: string) => {
-    setMatch((previous) => {
-      const queueItem = previous.pendingQueue.find((item) => item.id === itemId);
-      const nextQueue = previous.pendingQueue.filter((item) => item.id !== itemId);
-      const next = { ...previous, pendingQueue: nextQueue };
+  const handleQueueAction = (action: 'confirm' | 'delay' | 'cancel' | 'acknowledge', itemId: string) => {
+    mutateState((previous) => {
+      const item = getUpcomingSubstitutions(previous).find((entry) => entry.id === itemId);
+      if (!item) return previous;
+      const otherOverrides = previous.pendingQueue.filter((entry) => entry.id !== itemId);
+      const secondsUntil = getSecondsUntilSubstitution(previous, item);
+
+      if (action === 'acknowledge') {
+        if (item.status === 'due' || secondsUntil > 30 || secondsUntil <= -60) return previous;
+        return { ...previous, pendingQueue: [...otherOverrides, { ...item, status: 'due' }] };
+      }
 
       if (action === 'confirm') {
-        const playerOut = previous.players.find((p) => p.id === queueItem?.playerOutId);
-        const playerIn = previous.players.find((p) => p.id === queueItem?.playerInId);
-
-        if (playerOut && playerIn) {
-          const updated = applyManualSubstitution(next, playerOut.id, playerIn.id);
-          return {
-            ...updated,
-            pendingQueue: nextQueue,
-          };
-        }
+        if (item.status !== 'due') return previous;
+        const updated = applyManualSubstitution(previous, item.playerOutId, item.playerInId);
+        if (updated === previous) return previous;
+        return { ...updated, pendingQueue: [...otherOverrides, { ...item, status: 'confirmed' }] };
       }
 
       if (action === 'delay') {
-        const item = queueItem;
-        if (!item) return previous;
-        return {
-          ...previous,
-          pendingQueue: [
-            ...nextQueue,
-            {
-              ...item,
-              minute: Math.min(15, item.minute + 1),
-              status: 'queued',
-            },
-          ],
-        };
+        const nextQuarterIndex = quarterOrder.indexOf(item.quarter) + 1;
+        if (item.minute === 15 && nextQuarterIndex >= quarterOrder.length) return previous;
+        const quarter = item.minute === 15 ? quarterOrder[nextQuarterIndex] : item.quarter;
+        const minute = item.minute === 15 ? 1 : item.minute + 1;
+        const targetSlot = quarterOrder.indexOf(quarter) * 15 + minute - 1;
+        const updated = deferPlannedSubstitution(previous, item, targetSlot);
+        return { ...updated, pendingQueue: [...otherOverrides, { ...item, quarter, minute, status: 'queued' }] };
       }
 
-      if (action === 'cancel') {
-        return { ...previous, pendingQueue: nextQueue };
-      }
-
-      return previous;
+      const updated = deferPlannedSubstitution(previous, item);
+      return { ...updated, pendingQueue: [...otherOverrides, { ...item, status: 'cancelled' }] };
     });
   };
 
   const playersOnCurrentMinute = getCurrentPlayersOn(match.players, activeRotation, currentMinute.slotIndex);
-  const playersOffCurrentMinute = getOffFieldPlayers(match.players, activeRotation, currentMinute.slotIndex);
+  const actualOffFieldPlayers = getOffFieldPlayers(match.players, match.actualRotation, currentMinute.slotIndex);
+  const selectedIncomingId = actualOffFieldPlayers.some((player) => player.id === incomingPlayerId)
+    ? incomingPlayerId : actualOffFieldPlayers[0]?.id ?? '';
+  const selectedPlayerIsActuallyOn = Boolean(selectedPlayer && match.actualRotation[selectedPlayer.id]?.[currentMinute.slotIndex]);
 
   const handleAddPlayer = () => {
     if (!draftPlayer.name.trim()) return;
@@ -275,7 +324,7 @@ function App() {
     setDraftPlayer((current) => ({
       ...current,
       name: '',
-      number: current.number + 1,
+      number: current.number > 0 ? current.number + 1 : 0,
     }));
   };
 
@@ -331,7 +380,11 @@ function App() {
       <header className="topbar">
         <div className="brand-block">
           <span className="eyebrow">PRESSPLAY</span>
-          <h1>MATCHDAY</h1>
+          <h1>{match.matchTitle || 'MATCHDAY'}</h1>
+          <div className="header-meta">
+            <span>{match.opponent ? `vs ${match.opponent}` : 'Opponent TBD'}</span>
+            <span>{match.matchDate || 'Date TBD'}</span>
+          </div>
         </div>
 
         <div className="score-cluster">
@@ -351,8 +404,8 @@ function App() {
           <div className="quarter-badge">{match.quarter}</div>
           <div className="clock-display">{formatClock(match.clockSeconds)}</div>
           <div className="action-row compact">
-            <button type="button" onClick={() => setMatch((previous) => ({ ...previous, isRunning: !previous.isRunning }))}>
-              {match.isRunning ? 'PAUSE' : 'START'}
+            <button type="button" onClick={handleToggleClock}>
+              {match.isRunning ? 'PAUSE CLOCK' : 'START CLOCK'}
             </button>
             <button type="button" onClick={() => handleTickClock(-30)}>-30s</button>
             <button type="button" onClick={() => handleTickClock(30)}>+30s</button>
@@ -393,8 +446,8 @@ function App() {
           <button type="button" className="print-button" onClick={() => window.print()}>
             PRINT PLANNED SHEET
           </button>
-          <button type="button" onClick={() => setMatch((previous) => ({ ...previous, isRunning: !previous.isRunning }))}>
-            {match.isRunning ? 'PAUSE MATCH' : 'START MATCH'}
+          <button type="button" onClick={handleToggleClock}>
+            {match.isRunning ? 'PAUSE MATCH CLOCK' : 'START MATCH CLOCK'}
           </button>
           <button type="button" className="danger" onClick={handleResetMatch}>
             RESET MATCH
@@ -462,10 +515,10 @@ function App() {
               })}
             </div>
 
-            {match.players.map((player) => (
+            {orderedPlayers.map((player) => (
               <div key={player.id} className="player-row">
                 <button type="button" className={match.selectedPlayerId === player.id ? 'player-name active' : 'player-name'} onClick={() => setMatch((previous) => ({ ...previous, selectedPlayerId: player.id }))}>
-                  <span className="number">{player.number}</span>
+                  <span className="number">{player.number || '—'}</span>
                   <span>{player.name}</span>
                 </button>
 
@@ -495,7 +548,7 @@ function App() {
               <span>PLAYERS ON</span>
               <strong>{currentOnCount}/11</strong>
             </div>
-            <div className="summary-item error">
+            <div className={currentOnCount === 11 ? 'summary-item' : 'summary-item error'}>
               <span>MINUTE STATUS</span>
               <strong>{currentOnCount === 11 ? 'VALID' : 'ERROR'}</strong>
             </div>
@@ -509,6 +562,7 @@ function App() {
         <aside className="side-panel">
           <div className="panel-card">
             <h2>NEXT SUBSTITUTIONS</h2>
+            <p className="queue-help">Delay and cancel update the live lineup. The printed plan stays unchanged.</p>
             <div className="queue-list">
               {queue.length === 0 ? (
                 <div className="empty-queue">No substitutions due yet.</div>
@@ -516,6 +570,9 @@ function App() {
                 queue.map((entry) => {
                   const playerOut = match.players.find((player) => player.id === entry.playerOutId);
                   const playerIn = match.players.find((player) => player.id === entry.playerInId);
+                  const acknowledged = entry.status === 'due';
+                  const secondsUntil = getSecondsUntilSubstitution(match, entry);
+                  const canAcknowledge = secondsUntil <= 30 && secondsUntil > -60;
                   return (
                     <div className="queue-item" key={entry.id}>
                       <div className="queue-time">{entry.quarter} {String(entry.minute).padStart(2, '0')}:00</div>
@@ -526,7 +583,10 @@ function App() {
                         <strong>IN</strong>
                       </div>
                       <div className="queue-actions">
-                        <button type="button" onClick={() => handleQueueAction('confirm', entry.id)}>CONFIRM</button>
+                        <button type="button" onClick={() => handleQueueAction('acknowledge', entry.id)} disabled={!canAcknowledge || acknowledged}>
+                          {acknowledged ? 'ACKED' : canAcknowledge ? 'ACK' : 'WAIT'}
+                        </button>
+                        <button type="button" onClick={() => handleQueueAction('confirm', entry.id)} disabled={!acknowledged}>CONFIRM</button>
                         <button type="button" onClick={() => handleQueueAction('delay', entry.id)}>DELAY</button>
                         <button type="button" onClick={() => handleQueueAction('cancel', entry.id)}>CANCEL</button>
                       </div>
@@ -542,7 +602,7 @@ function App() {
             {selectedPlayer && (
               <div className="player-summary">
                 <div className="name-row">
-                  <span className="number">#{selectedPlayer.number}</span>
+                  <span className="number">#{selectedPlayer.number || '—'}</span>
                   <strong>{selectedPlayer.name}</strong>
                 </div>
                 <div className="status-grid">
@@ -552,7 +612,10 @@ function App() {
                   <div><span>REST</span><strong>{selectedPlayerIntel?.restMinutes ?? 0} mins</strong></div>
                 </div>
                 <div className="player-actions">
-                  <button type="button" onClick={() => handleManualSub(selectedPlayer.id, playersOffCurrentMinute[0]?.id ?? selectedPlayer.id)}>
+                  <select aria-label="Player coming on" value={selectedIncomingId} onChange={(event) => setIncomingPlayerId(event.target.value)}>
+                    {actualOffFieldPlayers.map((player) => <option key={player.id} value={player.id}>{player.name} IN</option>)}
+                  </select>
+                  <button type="button" disabled={!selectedPlayerIsActuallyOn || !selectedIncomingId} onClick={() => handleManualSub(selectedPlayer.id, selectedIncomingId)}>
                     SUB NOW
                   </button>
                   <button type="button" onClick={() => handleToggleCell(selectedPlayer.id, currentMinute.slotIndex)}>TOGGLE PLAN</button>
@@ -573,9 +636,10 @@ function App() {
               <div className="inline-fields">
                 <input
                   type="number"
-                  min={1}
-                  value={draftPlayer.number}
-                  onChange={(event) => setDraftPlayer((current) => ({ ...current, number: Number(event.target.value || 1) }))}
+                  min={0}
+                  value={draftPlayer.number || ''}
+                  placeholder="#"
+                  onChange={(event) => setDraftPlayer((current) => ({ ...current, number: Number(event.target.value || 0) }))}
                 />
                 <input
                   type="text"
@@ -606,9 +670,10 @@ function App() {
                   <input
                     aria-label={`${player.name} shirt number`}
                     type="number"
-                    min={1}
-                    value={player.number}
-                    onChange={(event) => handleUpdatePlayer(player.id, { number: Number(event.target.value || 1) })}
+                    min={0}
+                    value={player.number || ''}
+                    placeholder="#"
+                    onChange={(event) => handleUpdatePlayer(player.id, { number: Number(event.target.value || 0) })}
                   />
                   <input
                     aria-label={`${player.name} player name`}
@@ -726,7 +791,7 @@ function App() {
           <tbody>
             {match.players.map((player) => (
               <tr key={`print-${player.id}`}>
-                <td>{player.number}</td>
+                <td>{player.number || '—'}</td>
                 <td>{player.name}</td>
                 {quarterOrder.map((quarter, quarterIndex) => (
                   <td key={`${player.id}-${quarter}`}>

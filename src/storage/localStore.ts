@@ -1,6 +1,6 @@
 import type { MatchState } from '../types';
 
-const STORAGE_KEY = 'pressplay-matchday-state-v1';
+const STORAGE_KEY = 'pressplay-matchday-state-v2';
 
 export const saveMatchState = (state: MatchState): void => {
   const serializable = {

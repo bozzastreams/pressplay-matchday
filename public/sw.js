@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pressplay-matchday-v2';
+const CACHE_NAME = 'pressplay-matchday-v4';
 const BASE_URL = new URL('./', self.registration.scope);
 const APP_SHELL = ['', 'index.html', 'manifest.webmanifest', 'matchday-icon.svg']
   .map((path) => new URL(path, BASE_URL).toString());
@@ -21,6 +21,21 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match(new URL('index.html', BASE_URL).toString()))),
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
