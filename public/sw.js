@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pressplay-matchday-v4';
+const CACHE_NAME = 'pressplay-matchday-kampong-v5';
 const BASE_URL = new URL('./', self.registration.scope);
 const APP_SHELL = ['', 'index.html', 'manifest.webmanifest', 'matchday-icon.svg']
   .map((path) => new URL(path, BASE_URL).toString());

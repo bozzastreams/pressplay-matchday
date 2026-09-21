@@ -496,9 +496,10 @@ function App() {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-block">
-          <span className="eyebrow">PRESSPLAY</span>
-          <h1>{match.matchTitle || 'MATCHDAY'}</h1>
+          <span className="eyebrow">KAMPONG HOCKEY · MATCHDAY</span>
+          <h1>DAMES 1</h1>
           <div className="header-meta">
+            <span>{match.matchTitle || 'Matchday'}</span>
             <span>{match.opponent ? `vs ${match.opponent}` : 'Opponent TBD'}</span>
             <span>{match.matchDate || 'Date TBD'}</span>
           </div>
