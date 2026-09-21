@@ -118,23 +118,23 @@ select {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  min-width: 120px;
-  padding: 10px 14px;
+  gap: 4px;
+  min-width: 88px;
+  padding: 8px 10px;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--panel-alt);
 }
 
 .score-box span {
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   letter-spacing: 0.12rem;
   text-transform: uppercase;
   color: var(--muted);
 }
 
 .score-box strong {
-  font-size: 2rem;
+  font-size: 1.55rem;
   line-height: 1;
 }
 
@@ -164,7 +164,7 @@ select {
 }
 
 .clock-display {
-  font-size: clamp(1.9rem, 2.8vw, 2.8rem);
+  font-size: clamp(2.5rem, 4vw, 3.2rem);
   font-weight: 800;
   letter-spacing: 0.08rem;
   color: var(--champagne);
@@ -515,6 +515,16 @@ button.danger {
   padding: 12px;
 }
 
+.queue-item.featured {
+  background: #f6f2ea;
+  border-color: #d3c4a5;
+  padding: 14px;
+}
+
+.queue-item.compact {
+  padding: 10px 12px;
+}
+
 .queue-time {
   font-weight: 800;
   color: var(--gold);
@@ -541,9 +551,43 @@ button.danger {
 
 .queue-actions button {
   flex: 1 1 86px;
-  padding: 8px 10px;
-  font-size: 0.7rem;
+  padding: 10px 12px;
+  font-size: 0.72rem;
   letter-spacing: 0.08rem;
+}
+
+.queue-item.featured .queue-actions button {
+  min-height: 48px;
+  font-size: 0.78rem;
+}
+
+.queue-item.compact .queue-actions {
+  gap: 6px;
+}
+
+.queue-item.compact .queue-actions button {
+  flex: 1 1 56px;
+  min-height: 42px;
+  font-size: 0.66rem;
+  letter-spacing: 0.04rem;
+}
+
+.secondary-action {
+  background: #f5f5f1;
+  border-color: var(--border);
+}
+
+.primary-action {
+  background: var(--green-soft);
+  border-color: var(--green);
+  color: var(--green);
+  font-weight: 700;
+}
+
+.primary-action.alt {
+  background: #f3efe3;
+  border-color: #b89c64;
+  color: var(--gold);
 }
 
 .empty-queue {
@@ -789,12 +833,21 @@ button.danger {
     justify-content: space-between;
   }
 
+  .score-cluster {
+    justify-content: space-between;
+  }
+
+  .clock-display {
+    font-size: 2.5rem;
+  }
+
   .game-fields {
     grid-template-columns: 1fr;
   }
 
   button,
-  input {
+  input,
+  select {
     min-height: 44px;
   }
 

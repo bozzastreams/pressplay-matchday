@@ -18,7 +18,7 @@ export interface PendingSubstitution {
   minute: number;
   playerOutId: string;
   playerInId: string;
-  status: 'queued' | 'due' | 'confirmed' | 'cancelled';
+  status: 'queued' | 'called' | 'confirmed' | 'cancelled';
 }
 
 export interface SubstitutionEvent {
